@@ -2,6 +2,7 @@ package com.gromoks.container.impl;
 
 import com.gromoks.container.ApplicationContext;
 import com.gromoks.container.entity.BeanDefinition;
+import com.gromoks.container.exception.BeanInstantiationException;
 import com.gromoks.container.reader.BeanDefinitionReader;
 import com.gromoks.container.reader.impl.XMLBeanDefinitionReader;
 import org.apache.commons.lang.StringUtils;
@@ -101,10 +102,9 @@ public class ClassPathApplicationContext implements ApplicationContext {
                 Class<?> clazz = Class.forName(beanDefinition.getBeanClassName());
                 Object object = clazz.newInstance();
                 beanMap.put(beanDefinition.getId(), object);
-            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
-                e.printStackTrace();
+            } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
+                throw new BeanInstantiationException("Bean can't be instantiated. Bean Id = " + beanDefinition.getId(), e);
             }
-
         }
     }
 
@@ -157,7 +157,7 @@ public class ClassPathApplicationContext implements ApplicationContext {
                 }
             }
         } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException | NoSuchFieldException e) {
-            e.printStackTrace();
+            throw new BeanInstantiationException("Bean can't be injected by value dependencies. Bean Id = " + beanDefinition.getId(), e);
         }
     }
 
@@ -175,7 +175,7 @@ public class ClassPathApplicationContext implements ApplicationContext {
                 method.invoke(object, refObject);
             }
         } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | ClassNotFoundException e) {
-            e.printStackTrace();
+            throw new BeanInstantiationException("Bean can't be injected by ref dependencies. Bean Id = " + beanDefinition.getId(), e);
         }
     }
 }
