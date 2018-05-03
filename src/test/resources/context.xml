@@ -1,0 +1,7 @@
+<beans>
+    <bean id="testClass" class="com.gromoks.container.testentity.TestClass">
+        <property name="field1" value="value1"></property>
+        <property name="field2" value="3"></property>
+        <property name="field3" value="true"></property>
+    </bean>
+</beans>
