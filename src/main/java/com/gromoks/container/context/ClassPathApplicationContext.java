@@ -1,99 +1,79 @@
-package com.gromoks.container.impl;
+package com.gromoks.container.context;
 
-import com.gromoks.container.ApplicationContext;
 import com.gromoks.container.entity.BeanDefinition;
 import com.gromoks.container.exception.BeanInstantiationException;
 import com.gromoks.container.reader.BeanDefinitionReader;
-import com.gromoks.container.reader.impl.XMLBeanDefinitionReader;
-import org.apache.commons.lang.StringUtils;
+import com.gromoks.container.reader.xml.XMLBeanDefinitionReader;
 
-import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ClassPathApplicationContext implements ApplicationContext {
-    private static final String INT_VALUE = "int";
-    private static final String DOUBLE_VALUE = "double";
-    private static final String LONG_VALUE = "long";
-    private static final String BOOLEAN_VALUE = "boolean";
-
-    private final Map<String, Object> beanMap = new ConcurrentHashMap<>();
+    private final Map<String, Object> beanMap = new HashMap<>();
     private BeanDefinitionReader beanDefinitionReader;
-    private List<BeanDefinition> beanDefinitionList = new CopyOnWriteArrayList<>();
+    private List<BeanDefinition> beanDefinitionList;
 
     public ClassPathApplicationContext() {
     }
 
     public ClassPathApplicationContext(String contextPath) {
-        File file = new File(contextPath);
-        beanDefinitionReader = new XMLBeanDefinitionReader(file);
-        beanDefinitionList = beanDefinitionReader.readBeanDefinition();
-
-        createBeansFromBeanDefinitions();
-        injectDependencies();
-        injectRefDependencies();
+        this(new String[]{contextPath});
     }
 
     public ClassPathApplicationContext(String[] pathList) {
-        for (String path : pathList) {
-            File file = new File(path);
-            beanDefinitionReader = new XMLBeanDefinitionReader(file);
-            beanDefinitionList.addAll(beanDefinitionReader.readBeanDefinition());
-        }
-
-        createBeansFromBeanDefinitions();
-        injectDependencies();
-        injectRefDependencies();
+        beanDefinitionReader = new XMLBeanDefinitionReader(pathList);
+        start();
     }
 
+    @Override
     public <T> T getBean(Class<T> clazz) {
         for (Map.Entry<String, Object> pair : beanMap.entrySet()) {
             if (pair.getValue().getClass() == clazz) {
-                return (T) pair.getValue();
-            } else {
-                throw new IllegalArgumentException("Bean with required Class is absent");
+                return clazz.cast(pair.getValue());
             }
         }
-        throw new RuntimeException("Bean map is empty");
+        throw new RuntimeException("Bean with required Class is absent");
     }
 
+    @Override
     public <T> T getBean(String name, Class<T> clazz) {
         for (Map.Entry<String, Object> pair : beanMap.entrySet()) {
-            if (pair.getKey().equals(name)) {
-                return getBean(clazz);
-            } else {
-                throw new IllegalArgumentException("Bean with required Class and Name is absent");
+            if (pair.getKey().equals(name) && pair.getValue().getClass() == clazz) {
+                return clazz.cast(pair.getValue());
             }
         }
-        throw new RuntimeException("Bean map is empty");
+        throw new RuntimeException("Bean with required Class and Name is absent");
     }
 
+    @Override
     public Object getBean(String name) {
         return beanMap.get(name);
     }
 
+    @Override
     public List<String> getBeanNames() {
         return new ArrayList<>(beanMap.keySet());
     }
 
+    @Override
     public void setBeanDefinitionReader(BeanDefinitionReader beanDefinitionReader) {
         this.beanDefinitionReader = beanDefinitionReader;
     }
 
     @Override
-    public void manualStart() {
-        if (beanDefinitionList == null) {
-            beanDefinitionList = beanDefinitionReader.readBeanDefinition();
-            createBeansFromBeanDefinitions();
-            injectDependencies();
-            injectRefDependencies();
+    public void start() {
+        if (beanDefinitionList != null) {
+            throw new RuntimeException("Already started");
         }
+        beanDefinitionList = beanDefinitionReader.readBeanDefinition();
+        createBeansFromBeanDefinitions();
+        injectDependencies();
+        injectRefDependencies();
     }
 
     private void createBeansFromBeanDefinitions() {
@@ -132,28 +112,22 @@ public class ClassPathApplicationContext implements ApplicationContext {
 
             for (Map.Entry<String, String> pair : beanDefinition.getDependencies().entrySet()) {
                 String key = pair.getKey();
-                Object value = pair.getValue();
+                String value = pair.getValue();
 
                 Field field = clazz.getDeclaredField(key);
-                String fieldType = field.getType().getSimpleName();
+                Class fieldType = field.getType();
 
-                Class<?>[] paramTypes = {field.getType()};
-                Method method = clazz.getDeclaredMethod("set" + StringUtils.capitalize(key), paramTypes);
-                switch (fieldType) {
-                    case INT_VALUE:
-                        method.invoke(object, Integer.valueOf((String) value));
-                        break;
-                    case DOUBLE_VALUE:
-                        method.invoke(object, Double.valueOf((String) value));
-                        break;
-                    case LONG_VALUE:
-                        method.invoke(object, Long.valueOf((String) value));
-                        break;
-                    case BOOLEAN_VALUE:
-                        method.invoke(object, Boolean.valueOf((String) value));
-                        break;
-                    default:
-                        method.invoke(object, value);
+                Method method = clazz.getDeclaredMethod("set" + key.substring(0, 1).toUpperCase() + key.substring(1), field.getType());
+                if (fieldType == Integer.class || fieldType == int.class) {
+                    method.invoke(object, Integer.valueOf(value));
+                } else if (fieldType == Double.class || fieldType == double.class) {
+                    method.invoke(object, Double.valueOf(value));
+                } else if (fieldType == Long.class || fieldType == long.class) {
+                    method.invoke(object, Long.valueOf(value));
+                } else if (fieldType == Boolean.class || fieldType == boolean.class) {
+                    method.invoke(object, Boolean.valueOf(value));
+                } else {
+                    method.invoke(object, value);
                 }
             }
         } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException | NoSuchFieldException e) {
@@ -170,7 +144,7 @@ public class ClassPathApplicationContext implements ApplicationContext {
 
                 Object refObject = beanMap.get(value);
 
-                Method method = clazz.getDeclaredMethod("set" + StringUtils.capitalize(key), refObject.getClass());
+                Method method = clazz.getDeclaredMethod("set" + key.substring(0, 1).toUpperCase() + key.substring(1), refObject.getClass());
 
                 method.invoke(object, refObject);
             }

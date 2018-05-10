@@ -1,4 +1,4 @@
-package com.gromoks.container;
+package com.gromoks.container.context;
 
 import com.gromoks.container.reader.BeanDefinitionReader;
 
@@ -10,5 +10,5 @@ public interface ApplicationContext {
     Object getBean(String name);
     List<String> getBeanNames();
     void setBeanDefinitionReader(BeanDefinitionReader beanDefinitionReader);
-    void manualStart();
+    void start();
 }
