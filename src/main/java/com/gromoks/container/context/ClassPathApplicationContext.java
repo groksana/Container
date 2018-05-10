@@ -2,6 +2,7 @@ package com.gromoks.container.context;
 
 import com.gromoks.container.entity.BeanDefinition;
 import com.gromoks.container.exception.BeanInstantiationException;
+import com.gromoks.container.exception.BeanNotFoundException;
 import com.gromoks.container.reader.BeanDefinitionReader;
 import com.gromoks.container.reader.xml.XMLBeanDefinitionReader;
 
@@ -32,12 +33,22 @@ public class ClassPathApplicationContext implements ApplicationContext {
 
     @Override
     public <T> T getBean(Class<T> clazz) {
+        int k = 0;
+        Object bean = null;
         for (Map.Entry<String, Object> pair : beanMap.entrySet()) {
             if (pair.getValue().getClass() == clazz) {
-                return clazz.cast(pair.getValue());
+                k++;
+                bean = pair.getValue();
             }
         }
-        throw new RuntimeException("Bean with required Class is absent");
+
+        if (k == 1) {
+            return clazz.cast(bean);
+        } else if (k > 1) {
+            throw new BeanInstantiationException("There are more then 1 bean with requested Class: " + clazz);
+        } else {
+            throw new BeanNotFoundException("Bean with requested Class is absent: " + clazz);
+        }
     }
 
     @Override
@@ -47,12 +58,17 @@ public class ClassPathApplicationContext implements ApplicationContext {
                 return clazz.cast(pair.getValue());
             }
         }
-        throw new RuntimeException("Bean with required Class and Name is absent");
+        throw new BeanNotFoundException("Bean with requested Class and Name is absent: " + clazz + " - " + name);
     }
 
     @Override
     public Object getBean(String name) {
-        return beanMap.get(name);
+        Object bean = beanMap.get(name);
+        if (bean != null) {
+            return bean;
+        } else {
+            throw new BeanNotFoundException("Bean with requested Name is absent: " + name);
+        }
     }
 
     @Override
@@ -106,10 +122,15 @@ public class ClassPathApplicationContext implements ApplicationContext {
         }
     }
 
-    private void injectDependencies(BeanDefinition beanDefinition, Object object) {
+    void injectDependencies(BeanDefinition beanDefinition, Object object) {
+        Class<?> clazz;
         try {
-            Class<?> clazz = Class.forName(beanDefinition.getBeanClassName());
+            clazz = Class.forName(beanDefinition.getBeanClassName());
+        } catch (ClassNotFoundException e) {
+            throw new BeanInstantiationException("Class not found for bean id: " + beanDefinition.getBeanClassName());
+        }
 
+        try {
             for (Map.Entry<String, String> pair : beanDefinition.getDependencies().entrySet()) {
                 String key = pair.getKey();
                 String value = pair.getValue();
@@ -117,7 +138,13 @@ public class ClassPathApplicationContext implements ApplicationContext {
                 Field field = clazz.getDeclaredField(key);
                 Class fieldType = field.getType();
 
-                Method method = clazz.getDeclaredMethod("set" + key.substring(0, 1).toUpperCase() + key.substring(1), field.getType());
+                Method method;
+                try {
+                    method = clazz.getDeclaredMethod("set" + key.substring(0, 1).toUpperCase() + key.substring(1), field.getType());
+                } catch (NoSuchMethodException e) {
+                    throw new BeanInstantiationException("No setter was found in " + clazz + " for field " + key, e);
+                }
+
                 if (fieldType == Integer.class || fieldType == int.class) {
                     method.invoke(object, Integer.valueOf(value));
                 } else if (fieldType == Double.class || fieldType == double.class) {
@@ -130,25 +157,38 @@ public class ClassPathApplicationContext implements ApplicationContext {
                     method.invoke(object, value);
                 }
             }
-        } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException | NoSuchFieldException e) {
+        } catch (IllegalAccessException | InvocationTargetException | NoSuchFieldException e) {
             throw new BeanInstantiationException("Bean can't be injected by value dependencies. Bean Id = " + beanDefinition.getId(), e);
         }
     }
 
-    private void injectRefDependencies(BeanDefinition beanDefinition, Object object) {
+    void injectRefDependencies(BeanDefinition beanDefinition, Object object) {
+        Class<?> clazz;
         try {
-            Class<?> clazz = Class.forName(beanDefinition.getBeanClassName());
+            clazz = Class.forName(beanDefinition.getBeanClassName());
+        } catch (ClassNotFoundException e) {
+            throw new BeanInstantiationException("Class not found for bean id: " + beanDefinition.getBeanClassName());
+        }
+
+        try {
             for (Map.Entry<String, String> pair : beanDefinition.getRefDependencies().entrySet()) {
                 String key = pair.getKey();
                 String value = pair.getValue();
 
                 Object refObject = beanMap.get(value);
+                if (refObject == null) {
+                    throw new BeanNotFoundException("No such bean was registered: " + value);
+                }
 
-                Method method = clazz.getDeclaredMethod("set" + key.substring(0, 1).toUpperCase() + key.substring(1), refObject.getClass());
-
+                Method method;
+                try {
+                    method = clazz.getDeclaredMethod("set" + key.substring(0, 1).toUpperCase() + key.substring(1), refObject.getClass());
+                } catch (NoSuchMethodException e) {
+                    throw new BeanInstantiationException("No setter was found in " + clazz + " for field " + key, e);
+                }
                 method.invoke(object, refObject);
             }
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException | ClassNotFoundException e) {
+        }  catch (IllegalAccessException | InvocationTargetException e) {
             throw new BeanInstantiationException("Bean can't be injected by ref dependencies. Bean Id = " + beanDefinition.getId(), e);
         }
     }

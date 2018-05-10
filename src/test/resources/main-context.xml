@@ -5,11 +5,6 @@
         <property name="booleanField" value="true"/>
     </bean>
 
-    <bean id="emailService" class="com.gromoks.container.testdata.EmailService">
-        <property name="protocol" value="POP3"/>
-        <property name="port" value="3000"/>
-    </bean>
-
     <bean id="userService" class="com.gromoks.container.testdata.UserService">
         <property name="emailService" ref="emailService"/>
     </bean>

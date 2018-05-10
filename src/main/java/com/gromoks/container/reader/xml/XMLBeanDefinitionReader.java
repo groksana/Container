@@ -35,7 +35,7 @@ public class XMLBeanDefinitionReader extends DefaultHandler implements BeanDefin
 
     @Override
     public List<BeanDefinition> readBeanDefinition() {
-        parseDocument();
+        parseDocuments();
         return beanDefinitionList;
     }
 
@@ -78,7 +78,7 @@ public class XMLBeanDefinitionReader extends DefaultHandler implements BeanDefin
         }
     }
 
-    private void parseDocument() {
+    private void parseDocuments() {
         SAXParserFactory factory = SAXParserFactory.newInstance();
         try {
             SAXParser parser = factory.newSAXParser();
