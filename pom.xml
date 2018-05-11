@@ -15,6 +15,13 @@
 
         <!-- Maven properties -->
         <maven-plugin.version>3.7.0</maven-plugin.version>
+        <maven-surefire-plugin.version>2.20</maven-surefire-plugin.version>
+        <gmaven-plugin.version>1.5</gmaven-plugin.version>
+
+        <!-- Test properties -->
+        <groovy-all.version>2.4.14</groovy-all.version>
+        <testng.version>6.9.9</testng.version>
+        <provider-selection.version>2.0</provider-selection.version>
     </properties>
 
     <build>
@@ -30,21 +37,8 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>3.0.1</version>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.20</version>
+                <version>${maven-surefire-plugin.version}</version>
                 <configuration>
                     <includes>
                         <include>**/*Test.java</include>
@@ -54,14 +48,14 @@
             <plugin>
                 <groupId>org.codehaus.gmaven</groupId>
                 <artifactId>gmaven-plugin</artifactId>
-                <version>1.5</version>
+                <version>${gmaven-plugin.version}</version>
                 <executions>
                     <execution>
                         <goals>
                             <goal>testCompile</goal>
                         </goals>
                         <configuration>
-                            <providerSelection>2.0</providerSelection>
+                            <providerSelection>${provider-selection.version}</providerSelection>
                             <testSources>
                                 <testSource>
                                     <directory>${pom.basedir}/src/test/java</directory>
@@ -82,13 +76,13 @@
         <dependency>
             <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy-all</artifactId>
-            <version>2.4.14</version>
+            <version>${groovy-all.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
-            <version>6.9.9</version>
+            <version>${testng.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

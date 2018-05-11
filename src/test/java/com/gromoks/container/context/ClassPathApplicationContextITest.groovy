@@ -3,6 +3,8 @@ package com.gromoks.container.context
 import com.gromoks.container.entity.BeanDefinition
 import com.gromoks.container.exception.BeanInstantiationException
 import com.gromoks.container.exception.BeanNotFoundException
+import com.gromoks.container.reader.BeanDefinitionReader
+import com.gromoks.container.reader.xml.XMLBeanDefinitionReader
 import com.gromoks.container.testdata.DataTypeHolder
 import com.gromoks.container.testdata.ProductService
 import com.gromoks.container.testdata.UserService
@@ -153,6 +155,40 @@ class ClassPathApplicationContextITest {
                 "src/test/resources/main-context.xml")
         def actualBeanNames = applicationContext.getBeanNames()
         assertEquals(actualBeanNames, expectedBeanNames)
+    }
+
+    @Test(dataProvider = "provideBeanNames", dataProviderClass = BeanDefinitionDataProvider.class)
+    void getBeanNamesToSetBeanDefinitionReaderTest(List<String> expectedBeanNames) {
+        ApplicationContext applicationContext = new ClassPathApplicationContext()
+        BeanDefinitionReader beanDefinitionReader = new XMLBeanDefinitionReader("src/test/resources/context.xml")
+        applicationContext.setBeanDefinitionReader(beanDefinitionReader)
+        applicationContext.start()
+        def actualBeanNames = applicationContext.getBeanNames()
+
+        assertEquals(actualBeanNames, expectedBeanNames)
+    }
+
+    @Test(dataProvider = "provideBeanNames", dataProviderClass = BeanDefinitionDataProvider.class)
+    void getBeanNamesToSetBeanDefinitionReaderPathsTest(List<String> expectedBeanNames) {
+        ApplicationContext applicationContext = new ClassPathApplicationContext()
+        BeanDefinitionReader beanDefinitionReader = new XMLBeanDefinitionReader("src/test/resources/email-context.xml",
+                "src/test/resources/main-context.xml")
+        applicationContext.setBeanDefinitionReader(beanDefinitionReader)
+        applicationContext.start()
+        def actualBeanNames = applicationContext.getBeanNames()
+
+        assertEquals(actualBeanNames, expectedBeanNames)
+    }
+
+    @Test(dataProvider = "provideBeanNames", dataProviderClass = BeanDefinitionDataProvider.class,
+            expectedExceptionsMessageRegExp = "Already started",
+            expectedExceptions = RuntimeException.class)
+    void getBeanNamesToSetBeanDefinitionReaderDoubleStartTest(List<String> expectedBeanNames) {
+        ApplicationContext applicationContext = new ClassPathApplicationContext()
+        BeanDefinitionReader beanDefinitionReader = new XMLBeanDefinitionReader("src/test/resources/context.xml")
+        applicationContext.setBeanDefinitionReader(beanDefinitionReader)
+        applicationContext.start()
+        applicationContext.start()
     }
 
     @Test(dataProvider = "provideBeanDefinitionInt", dataProviderClass = BeanDefinitionDataProvider.class)
