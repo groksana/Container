@@ -17,7 +17,7 @@ import static org.testng.Assert.assertTrue
 class ClassPathApplicationContextITest {
     @Test
     void getBeanByClassTest() {
-        ApplicationContext applicationContext = new ClassPathApplicationContext("src/test/resources/context.xml");
+        ApplicationContext applicationContext = new ClassPathApplicationContext("src/test/resources/context.xml")
         def userService = applicationContext.getBean(UserService.class)
         assertTrue(userService instanceof UserService)
     }
@@ -33,14 +33,14 @@ class ClassPathApplicationContextITest {
     @Test(expectedExceptionsMessageRegExp = "There are more then 1 bean with requested Class: class com.gromoks.container.testdata.ProductService",
             expectedExceptions = BeanInstantiationException.class)
     void getBeanByClassMultipleBeansTest() {
-        ApplicationContext applicationContext = new ClassPathApplicationContext("src/test/resources/context.xml");
+        ApplicationContext applicationContext = new ClassPathApplicationContext("src/test/resources/context.xml")
         applicationContext.getBean(ProductService.class)
     }
 
     @Test(expectedExceptionsMessageRegExp = "Bean with requested Class is absent: class java.lang.String",
             expectedExceptions = BeanNotFoundException.class)
     void getBeanByClassNotExistsTest() {
-        ApplicationContext applicationContext = new ClassPathApplicationContext("src/test/resources/context.xml");
+        ApplicationContext applicationContext = new ClassPathApplicationContext("src/test/resources/context.xml")
         applicationContext.getBean(String.class)
     }
 
@@ -54,7 +54,7 @@ class ClassPathApplicationContextITest {
 
     @Test
     void getBeanByIdTest() {
-        ApplicationContext applicationContext = new ClassPathApplicationContext("src/test/resources/context.xml");
+        ApplicationContext applicationContext = new ClassPathApplicationContext("src/test/resources/context.xml")
         def userService = applicationContext.getBean("userService")
         assertTrue(userService instanceof UserService)
     }
@@ -70,7 +70,7 @@ class ClassPathApplicationContextITest {
     @Test(expectedExceptionsMessageRegExp = "Bean with requested Name is absent: userService",
             expectedExceptions = BeanNotFoundException.class)
     void getBeanByIdBeanNotRegisteredTest() {
-        ApplicationContext applicationContext = new ClassPathApplicationContext("src/test/resources/email-context.xml");
+        ApplicationContext applicationContext = new ClassPathApplicationContext("src/test/resources/email-context.xml")
         applicationContext.getBean("userService")
     }
 
@@ -84,7 +84,7 @@ class ClassPathApplicationContextITest {
 
     @Test
     void getBeanByIdAndClassTest() {
-        ApplicationContext applicationContext = new ClassPathApplicationContext("src/test/resources/context.xml");
+        ApplicationContext applicationContext = new ClassPathApplicationContext("src/test/resources/context.xml")
         def productService = applicationContext.getBean("secondProductService", ProductService.class)
         assertTrue(productService instanceof ProductService)
     }
@@ -100,7 +100,7 @@ class ClassPathApplicationContextITest {
     @Test(expectedExceptionsMessageRegExp = "Bean with requested Class and Name is absent: class java.lang.String - string",
             expectedExceptions = BeanNotFoundException.class)
     void getBeanByIdAndClassNotExistsTest() {
-        ApplicationContext applicationContext = new ClassPathApplicationContext("src/test/resources/context.xml");
+        ApplicationContext applicationContext = new ClassPathApplicationContext("src/test/resources/context.xml")
         applicationContext.getBean("string", String.class)
     }
 
@@ -180,10 +180,9 @@ class ClassPathApplicationContextITest {
         assertEquals(actualBeanNames, expectedBeanNames)
     }
 
-    @Test(dataProvider = "provideBeanNames", dataProviderClass = BeanDefinitionDataProvider.class,
-            expectedExceptionsMessageRegExp = "Already started",
+    @Test(expectedExceptionsMessageRegExp = "Already started",
             expectedExceptions = RuntimeException.class)
-    void getBeanNamesToSetBeanDefinitionReaderDoubleStartTest(List<String> expectedBeanNames) {
+    void getBeanNamesToSetBeanDefinitionReaderDoubleStartTest() {
         ApplicationContext applicationContext = new ClassPathApplicationContext()
         BeanDefinitionReader beanDefinitionReader = new XMLBeanDefinitionReader("src/test/resources/context.xml")
         applicationContext.setBeanDefinitionReader(beanDefinitionReader)

@@ -5,7 +5,6 @@ import com.gromoks.container.testdata.provider.BeanDefinitionDataProvider
 import org.testng.annotations.Test
 
 import static org.testng.Assert.assertEquals
-import static org.testng.Assert.assertEquals
 
 class XMLBeanDefinitionReaderTest {
     @Test(dataProvider = "provideBeanDefinitions", dataProviderClass = BeanDefinitionDataProvider.class)
