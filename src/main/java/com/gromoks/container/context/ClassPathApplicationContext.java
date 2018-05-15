@@ -33,18 +33,18 @@ public class ClassPathApplicationContext implements ApplicationContext {
 
     @Override
     public <T> T getBean(Class<T> clazz) {
-        int k = 0;
+        int count = 0;
         Object bean = null;
         for (Map.Entry<String, Object> pair : beanMap.entrySet()) {
             if (pair.getValue().getClass() == clazz) {
-                k++;
+                count++;
                 bean = pair.getValue();
             }
         }
 
-        if (k == 1) {
+        if (count == 1) {
             return clazz.cast(bean);
-        } else if (k > 1) {
+        } else if (count > 1) {
             throw new BeanInstantiationException("There are more then 1 bean with requested Class: " + clazz);
         } else {
             throw new BeanNotFoundException("Bean with requested Class is absent: " + clazz);
@@ -53,10 +53,10 @@ public class ClassPathApplicationContext implements ApplicationContext {
 
     @Override
     public <T> T getBean(String name, Class<T> clazz) {
-        for (Map.Entry<String, Object> pair : beanMap.entrySet()) {
-            if (pair.getKey().equals(name) && pair.getValue().getClass() == clazz) {
-                return clazz.cast(pair.getValue());
-            }
+        Object bean = beanMap.get(name);
+
+        if (bean != null) {
+            return clazz.cast(bean);
         }
         throw new BeanNotFoundException("Bean with requested Class and Name is absent: " + clazz + " - " + name);
     }
@@ -98,7 +98,7 @@ public class ClassPathApplicationContext implements ApplicationContext {
                 Class<?> clazz = Class.forName(beanDefinition.getBeanClassName());
                 Object object = clazz.newInstance();
                 beanMap.put(beanDefinition.getId(), object);
-            } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
+            } catch (Exception e) {
                 throw new BeanInstantiationException("Bean can't be instantiated. Bean Id = " + beanDefinition.getId(), e);
             }
         }
@@ -123,12 +123,7 @@ public class ClassPathApplicationContext implements ApplicationContext {
     }
 
     void injectDependencies(BeanDefinition beanDefinition, Object object) {
-        Class<?> clazz;
-        try {
-            clazz = Class.forName(beanDefinition.getBeanClassName());
-        } catch (ClassNotFoundException e) {
-            throw new BeanInstantiationException("Class not found for bean id: " + beanDefinition.getBeanClassName());
-        }
+        Class<?> clazz = object.getClass();
 
         try {
             for (Map.Entry<String, String> pair : beanDefinition.getDependencies().entrySet()) {
@@ -163,12 +158,7 @@ public class ClassPathApplicationContext implements ApplicationContext {
     }
 
     void injectRefDependencies(BeanDefinition beanDefinition, Object object) {
-        Class<?> clazz;
-        try {
-            clazz = Class.forName(beanDefinition.getBeanClassName());
-        } catch (ClassNotFoundException e) {
-            throw new BeanInstantiationException("Class not found for bean id: " + beanDefinition.getBeanClassName());
-        }
+        Class<?> clazz = object.getClass();
 
         try {
             for (Map.Entry<String, String> pair : beanDefinition.getRefDependencies().entrySet()) {

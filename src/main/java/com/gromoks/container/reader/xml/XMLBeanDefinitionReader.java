@@ -25,7 +25,6 @@ public class XMLBeanDefinitionReader extends DefaultHandler implements BeanDefin
     private static final String REF_ATTRIBUTE = "ref";
 
     private List<BeanDefinition> beanDefinitionList;
-    private BeanDefinition beanDefinition;
     private String[] pathList;
 
     public XMLBeanDefinitionReader(String[] pathList) {
@@ -44,12 +43,14 @@ public class XMLBeanDefinitionReader extends DefaultHandler implements BeanDefin
         if (qName.equalsIgnoreCase(BEAN_ELEMENT)) {
             String id = attributes.getValue(ID_ATTRIBUTE);
             String clazz = attributes.getValue(BEAN_CLASS_NAME_ATTRIBUTE);
-            beanDefinition = new BeanDefinition();
+
+            BeanDefinition beanDefinition = new BeanDefinition();
             beanDefinition.setId(id);
             beanDefinition.setBeanClassName(clazz);
-        }
+            beanDefinitionList.add(beanDefinition);
 
-        if (qName.equalsIgnoreCase(PROPERTY_ELEMENT)) {
+        } else if (qName.equalsIgnoreCase(PROPERTY_ELEMENT)) {
+            BeanDefinition beanDefinition = beanDefinitionList.get(beanDefinitionList.size() - 1);
             Map<String, String> dependencies = beanDefinition.getDependencies();
             Map<String, String> refDependencies = beanDefinition.getRefDependencies();
             String value = attributes.getValue(VALUE_ATTRIBUTE);
@@ -60,21 +61,13 @@ public class XMLBeanDefinitionReader extends DefaultHandler implements BeanDefin
                 }
                 dependencies.put(attributes.getValue(NAME_ATTRIBUTE), value);
                 beanDefinition.setDependencies(dependencies);
-            }
-            if (ref != null) {
+            } else if (ref != null) {
                 if (refDependencies == null) {
                     refDependencies = new HashMap<>();
                 }
                 refDependencies.put(attributes.getValue(NAME_ATTRIBUTE), ref);
                 beanDefinition.setRefDependencies(refDependencies);
             }
-        }
-    }
-
-    @Override
-    public void endElement(String uri, String localName, String qName) throws SAXException {
-        if (qName.equalsIgnoreCase(BEAN_ELEMENT)) {
-            beanDefinitionList.add(beanDefinition);
         }
     }
 
