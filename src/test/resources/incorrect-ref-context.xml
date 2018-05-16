@@ -1,0 +1,25 @@
+<beans>
+    <bean id="emailService" class="com.gromoks.container.testdata.EmailService">
+        <property name="protocol" value="POP3"/>
+        <property name="port" value="3000"/>
+    </bean>
+
+    <bean id="userService" class="com.gromoks.container.testdata.UserService">
+        <property name="emailService" ref="emailService"/>
+    </bean>
+
+    <bean id="userServiceIncorrectRef" class="com.gromoks.container.testdata.UserService">
+        <property name="emailService" ref="emailServiceNotExists"/>
+    </bean>
+
+    <bean id="productService" class="com.gromoks.container.testdata.ProductService">
+        <property name="stringField" value="value1"/>
+        <property name="intField" value="3"/>
+        <property name="booleanField" value="true"/>
+    </bean>
+
+    <bean id="secondProductService" class="com.gromoks.container.testdata.ProductService">
+        <property name="stringField" value="value2"/>
+        <property name="intField" value="4"/>
+    </bean>
+</beans>
