@@ -3,12 +3,11 @@ package com.gromoks.container.context;
 import com.gromoks.container.entity.BeanDefinition;
 import com.gromoks.container.exception.BeanInstantiationException;
 import com.gromoks.container.exception.BeanNotFoundException;
+import com.gromoks.container.injector.RefDependencyInjector;
+import com.gromoks.container.injector.ValueDependencyInjector;
 import com.gromoks.container.reader.BeanDefinitionReader;
 import com.gromoks.container.reader.xml.XMLBeanDefinitionReader;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -88,8 +87,10 @@ public class ClassPathApplicationContext implements ApplicationContext {
         }
         beanDefinitionList = beanDefinitionReader.readBeanDefinition();
         createBeansFromBeanDefinitions();
-        injectDependencies();
-        injectRefDependencies();
+        //injectDependencies();
+        //injectRefDependencies();
+        new ValueDependencyInjector(beanMap, beanDefinitionList).inject();
+        new RefDependencyInjector(beanMap, beanDefinitionList).inject();
     }
 
     private void createBeansFromBeanDefinitions() {
@@ -101,85 +102,6 @@ public class ClassPathApplicationContext implements ApplicationContext {
             } catch (Exception e) {
                 throw new BeanInstantiationException("Bean can't be instantiated. Bean Id = " + beanDefinition.getId(), e);
             }
-        }
-    }
-
-    private void injectDependencies() {
-        for (BeanDefinition beanDefinition : beanDefinitionList) {
-            if (beanDefinition.getDependencies() != null) {
-                Object object = beanMap.get(beanDefinition.getId());
-                injectDependencies(beanDefinition, object);
-            }
-        }
-    }
-
-    private void injectRefDependencies() {
-        for (BeanDefinition beanDefinition : beanDefinitionList) {
-            if (beanDefinition.getRefDependencies() != null) {
-                Object object = beanMap.get(beanDefinition.getId());
-                injectRefDependencies(beanDefinition, object);
-            }
-        }
-    }
-
-    void injectDependencies(BeanDefinition beanDefinition, Object object) {
-        Class<?> clazz = object.getClass();
-
-        try {
-            for (Map.Entry<String, String> pair : beanDefinition.getDependencies().entrySet()) {
-                String key = pair.getKey();
-                String value = pair.getValue();
-
-                Field field = clazz.getDeclaredField(key);
-                Class fieldType = field.getType();
-
-                Method method;
-                try {
-                    method = clazz.getDeclaredMethod("set" + key.substring(0, 1).toUpperCase() + key.substring(1), field.getType());
-                } catch (NoSuchMethodException e) {
-                    throw new BeanInstantiationException("No setter was found in " + clazz + " for field " + key, e);
-                }
-
-                if (fieldType == Integer.class || fieldType == int.class) {
-                    method.invoke(object, Integer.valueOf(value));
-                } else if (fieldType == Double.class || fieldType == double.class) {
-                    method.invoke(object, Double.valueOf(value));
-                } else if (fieldType == Long.class || fieldType == long.class) {
-                    method.invoke(object, Long.valueOf(value));
-                } else if (fieldType == Boolean.class || fieldType == boolean.class) {
-                    method.invoke(object, Boolean.valueOf(value));
-                } else {
-                    method.invoke(object, value);
-                }
-            }
-        } catch (IllegalAccessException | InvocationTargetException | NoSuchFieldException e) {
-            throw new BeanInstantiationException("Bean can't be injected by value dependencies. Bean Id = " + beanDefinition.getId(), e);
-        }
-    }
-
-    void injectRefDependencies(BeanDefinition beanDefinition, Object object) {
-        Class<?> clazz = object.getClass();
-
-        try {
-            for (Map.Entry<String, String> pair : beanDefinition.getRefDependencies().entrySet()) {
-                String key = pair.getKey();
-                String value = pair.getValue();
-
-                Object refObject = beanMap.get(value);
-                if (refObject == null) {
-                    throw new BeanNotFoundException("No such bean was registered: " + value);
-                }
-
-                Method method;
-                try {
-                    method = clazz.getDeclaredMethod("set" + key.substring(0, 1).toUpperCase() + key.substring(1), refObject.getClass());
-                } catch (NoSuchMethodException e) {
-                    throw new BeanInstantiationException("No setter was found in " + clazz + " for field " + key, e);
-                }
-                method.invoke(object, refObject);
-            }
-        }  catch (IllegalAccessException | InvocationTargetException e) {
-            throw new BeanInstantiationException("Bean can't be injected by ref dependencies. Bean Id = " + beanDefinition.getId(), e);
         }
     }
 }
