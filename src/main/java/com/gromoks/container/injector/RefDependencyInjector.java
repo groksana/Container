@@ -30,13 +30,19 @@ public class RefDependencyInjector extends Injector {
                         throw new BeanNotFoundException("No such bean was registered: " + value);
                     }
 
-                    Method method;
-                    try {
-                        method = clazz.getDeclaredMethod("set" + key.substring(0, 1).toUpperCase() + key.substring(1), refObject.getClass());
-                    } catch (NoSuchMethodException e) {
-                        throw new BeanInstantiationException("No setter was found in " + clazz + " for field " + key, e);
+                    Method[] declaredMethods = clazz.getDeclaredMethods();
+                    String expectedMethodName = "set" + key.substring(0, 1).toUpperCase() + key.substring(1);
+                    boolean isFound = false;
+                    for (Method method : declaredMethods) {
+                        if (method.getName().equals(expectedMethodName)) {
+                            method.invoke(object, refObject);
+                            isFound = true;
+                        }
                     }
-                    method.invoke(object, refObject);
+
+                    if (!isFound) {
+                        throw new BeanInstantiationException("No setter was found in " + clazz + " for field " + key);
+                    }
                 }
             } catch (IllegalAccessException | InvocationTargetException e) {
                 throw new BeanInstantiationException("Bean can't be injected by ref dependencies. Bean Id = " + beanDefinition.getId(), e);
